@@ -1,0 +1,5 @@
+{
+    "display_name": "Weather with Time",
+    "id": "weather_time",
+    "class": "WeatherTime"
+}
