@@ -1,0 +1,40 @@
+{
+    "name": "InkyPi",
+    "orientation": "horizontal",
+    "inverted_image": "on",
+    "scheduler_sleep_time": 60,
+    "startup": false,
+    "display_type": "epd7in3e",
+    "resolution": [
+        800,
+        480
+    ],
+    "playlist_config": {
+        "playlists": [
+            {
+                "name": "Default",
+                "start_time": "00:00",
+                "end_time": "24:00",
+                "plugins": [],
+                "current_plugin_index": null
+            }
+        ],
+        "active_playlist": "Default"
+    },
+    "refresh_info": {
+        "refresh_time": "2026-01-12T13:27:41.217098-05:00",
+        "image_hash": "3fb5245dbd781efe46e78eb17df58da3c04795efa49f87c0c64b5ff8d6cddd18",
+        "refresh_type": "Manual Update",
+        "plugin_id": "weather"
+    },
+    "log_system_stats": null,
+    "timezone": "America/New_York",
+    "time_format": "12h",
+    "plugin_cycle_interval_seconds": 3600,
+    "image_settings": {
+        "saturation": 1.0,
+        "brightness": 1.0,
+        "sharpness": 1.0,
+        "contrast": 1.0
+    }
+}
