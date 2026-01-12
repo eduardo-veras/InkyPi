@@ -177,6 +177,64 @@ def update_plugin_instance(instance_name):
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
     return jsonify({"success": True, "message": f"Updated plugin instance {instance_name}."})
 
+@plugin_bp.route('/update_plugin_schedule', methods=['PUT'])
+def update_plugin_schedule():
+    device_config = current_app.config['DEVICE_CONFIG']
+    playlist_manager = device_config.get_playlist_manager()
+    
+    try:
+        data = request.json
+        plugin_id = data.get('plugin_id')
+        instance_name = data.get('instance_name')
+        refresh_type = data.get('refreshType')
+        
+        if not plugin_id or not instance_name:
+            return jsonify({"error": "Plugin ID and instance name are required"}), 400
+        
+        if not refresh_type or refresh_type not in ["interval", "scheduled", "cron"]:
+            return jsonify({"error": "Valid refresh type is required"}), 400
+        
+        plugin_instance = playlist_manager.find_plugin(plugin_id, instance_name)
+        if not plugin_instance:
+            return jsonify({"error": f"Plugin instance '{instance_name}' not found"}), 404
+        
+        # Parse refresh configuration based on type
+        if refresh_type == "interval":
+            unit = data.get('unit')
+            interval = data.get('interval')
+            if not unit or unit not in ["minute", "hour", "day"]:
+                return jsonify({"error": "Valid refresh interval unit is required"}), 400
+            if not interval:
+                return jsonify({"error": "Refresh interval is required"}), 400
+            from utils.time_utils import calculate_seconds
+            refresh_interval_seconds = calculate_seconds(int(interval), unit)
+            refresh_config = {"interval": refresh_interval_seconds}
+        elif refresh_type == "scheduled":
+            refresh_time = data.get('refreshTime')
+            if not refresh_time:
+                return jsonify({"error": "Refresh time is required"}), 400
+            refresh_config = {"scheduled": refresh_time}
+        elif refresh_type == "cron":
+            cron_expression = data.get('cronExpression')
+            if not cron_expression:
+                return jsonify({"error": "Cron expression is required"}), 400
+            # Validate cron expression
+            try:
+                from croniter import croniter
+                croniter(cron_expression)
+            except Exception as e:
+                return jsonify({"error": f"Invalid cron expression: {str(e)}"}), 400
+            refresh_config = {"cron": cron_expression}
+        
+        # Update the refresh configuration
+        plugin_instance.refresh = refresh_config
+        device_config.write_config()
+        
+        return jsonify({"success": True, "message": "Refresh schedule updated successfully"})
+    except Exception as e:
+        logger.exception("Error updating plugin schedule")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
 @plugin_bp.route('/display_plugin_instance', methods=['POST'])
 def display_plugin_instance():
     device_config = current_app.config['DEVICE_CONFIG']

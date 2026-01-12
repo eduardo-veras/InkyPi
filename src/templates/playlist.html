@@ -321,6 +321,129 @@
                 sessionStorage.removeItem("storedMessage"); // Clear stored message after displaying
             }
         });
+
+        // Schedule editing functions
+        function openEditScheduleModal(pluginId, instanceName, refreshConfig) {
+            document.getElementById("schedule_plugin_id").value = pluginId;
+            document.getElementById("schedule_instance_name").value = instanceName;
+            
+            // Determine refresh type and populate form
+            if (refreshConfig.interval !== undefined) {
+                // Interval-based refresh
+                document.getElementById("schedule-refresh-interval").checked = true;
+                const seconds = refreshConfig.interval;
+                if (seconds % 86400 === 0) {
+                    document.getElementById("schedule-interval").value = seconds / 86400;
+                    document.getElementById("schedule-unit").value = "day";
+                } else if (seconds % 3600 === 0) {
+                    document.getElementById("schedule-interval").value = seconds / 3600;
+                    document.getElementById("schedule-unit").value = "hour";
+                } else {
+                    document.getElementById("schedule-interval").value = seconds / 60;
+                    document.getElementById("schedule-unit").value = "minute";
+                }
+            } else if (refreshConfig.scheduled !== undefined) {
+                // Scheduled refresh
+                document.getElementById("schedule-refresh-scheduled").checked = true;
+                document.getElementById("schedule-scheduled").value = refreshConfig.scheduled;
+            } else if (refreshConfig.cron !== undefined) {
+                // Cron-based refresh
+                document.getElementById("schedule-refresh-cron").checked = true;
+                document.getElementById("schedule-cronExpression").value = refreshConfig.cron;
+            }
+            
+            document.getElementById("scheduleModal").style.display = "block";
+        }
+
+        function closeScheduleModal() {
+            document.getElementById("scheduleModal").style.display = "none";
+        }
+
+        async function updatePluginSchedule() {
+            const pluginId = document.getElementById("schedule_plugin_id").value;
+            const instanceName = document.getElementById("schedule_instance_name").value;
+            const refreshType = document.querySelector('input[name="scheduleRefreshType"]:checked').value;
+            
+            let requestData = {
+                plugin_id: pluginId,
+                instance_name: instanceName,
+                refreshType: refreshType
+            };
+            
+            if (refreshType === "interval") {
+                requestData.interval = document.getElementById("schedule-interval").value;
+                requestData.unit = document.getElementById("schedule-unit").value;
+            } else if (refreshType === "scheduled") {
+                requestData.refreshTime = document.getElementById("schedule-scheduled").value;
+            } else if (refreshType === "cron") {
+                requestData.cronExpression = document.getElementById("schedule-cronExpression").value;
+            }
+            
+            try {
+                const response = await fetch("{{ url_for('plugin.update_plugin_schedule') }}", {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    closeScheduleModal();
+                    sessionStorage.setItem("storedMessage", JSON.stringify({ type: "success", text: `Success! ${result.message}` }));
+                    location.reload();
+                } else {
+                    showResponseModal('failure', `Error! ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showResponseModal('failure', 'An error occurred while updating the schedule.');
+            }
+        }
+
+        // Setup radio/input interactions for schedule modal
+        document.addEventListener('DOMContentLoaded', () => {
+            const groupInterval = document.getElementById('schedule-group-interval');
+            const radioInterval = document.getElementById('schedule-refresh-interval');
+            const inputInterval = document.getElementById('schedule-interval');
+
+            const groupScheduled = document.getElementById('schedule-group-scheduled');
+            const radioScheduled = document.getElementById('schedule-refresh-scheduled');
+            const inputScheduled = document.getElementById('schedule-scheduled');
+
+            const groupCron = document.getElementById('schedule-group-cron');
+            const radioCron = document.getElementById('schedule-refresh-cron');
+            const inputCron = document.getElementById('schedule-cronExpression');
+
+            const activateGroup = (radio, input) => {
+                radio.checked = true;
+                setTimeout(() => input.focus(), 0);
+            };
+
+            groupInterval.addEventListener('click', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+                activateGroup(radioInterval, inputInterval);
+            });
+
+            groupScheduled.addEventListener('click', (e) => {
+                if (e.target.tagName === 'INPUT') return;
+                activateGroup(radioScheduled, inputScheduled);
+            });
+
+            groupCron.addEventListener('click', (e) => {
+                if (e.target.tagName === 'INPUT') return;
+                activateGroup(radioCron, inputCron);
+            });
+
+            radioInterval.addEventListener('click', () => activateGroup(radioInterval, inputInterval));
+            radioScheduled.addEventListener('click', () => activateGroup(radioScheduled, inputScheduled));
+            radioCron.addEventListener('click', () => activateGroup(radioCron, inputCron));
+
+            inputInterval.addEventListener('focus', () => (radioInterval.checked = true));
+            inputScheduled.addEventListener('focus', () => (radioScheduled.checked = true));
+            inputCron.addEventListener('focus', () => (radioCron.checked = true));
+        });
     </script>
 </head>
 <body>
@@ -383,9 +506,12 @@
                                     </span>
                                 {% endif %}
 
-                                <a href="{{ url_for('plugin.plugin_page', plugin_id=plugin_instance.plugin_id) }}?instance={{ plugin_instance.name }}" class="edit-button">
+                                <a href="{{ url_for('plugin.plugin_page', plugin_id=plugin_instance.plugin_id) }}?instance={{ plugin_instance.name }}" class="edit-button" title="Edit Settings">
                                     <img src="{{ url_for('static', filename='icons/edit.png') }}" alt="edit plugin" class="action-icon">
                                 </a>
+                                <button class="edit-button" title="Edit Schedule" onclick="openEditScheduleModal('{{ plugin_instance.plugin_id }}', '{{ plugin_instance.name }}', {{ plugin_instance.refresh | tojson }})">
+                                    <img src="{{ url_for('static', filename='icons/playlist.png') }}" alt="edit schedule" class="action-icon">
+                                </button>
                                 <button class="edit-button" title="Display Now" onclick="displayPluginInstance('{{ playlist.name }}', '{{ plugin_instance.plugin_id }}','{{ plugin_instance.name }}')">
                                     <img src="{{ url_for('static', filename='icons/display.png') }}" alt="display now" class="action-icon">
                                 </button>
@@ -424,6 +550,46 @@
             <div class="buttons-container">
                 <button type="button" class="action-button" id="saveButton">Save</button>
                 <button type="button" class="action-button warn hidden" id="deleteButton" onclick="deletePlaylist()">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Schedule Modal -->
+    <div id="scheduleModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeScheduleModal()">×</span>
+            <h2>Edit Refresh Schedule</h2>
+            <div class="separator"></div>
+            <form id="scheduleEditForm" class="settings-form">
+                <input type="hidden" id="schedule_plugin_id" value="">
+                <input type="hidden" id="schedule_instance_name" value="">
+                
+                <div class="form-group nowrap" id="schedule-group-interval">
+                    <input type="radio" name="scheduleRefreshType" id="schedule-refresh-interval" value="interval" checked>
+                    <label for="schedule-refresh-interval">Every</label>
+                    <input type="number" id="schedule-interval" name="interval" class="form-input" required min="1" placeholder="Enter a number">
+                    <select id="schedule-unit" name="unit" class="form-input" required>
+                        <option value="minute">Minute</option>
+                        <option value="hour">Hour</option>
+                        <option value="day">Day</option>
+                    </select>
+                </div>
+
+                <div class="form-group nowrap" id="schedule-group-scheduled">
+                    <input type="radio" name="scheduleRefreshType" id="schedule-refresh-scheduled" value="scheduled">
+                    <label for="schedule-refresh-scheduled">Daily at</label>
+                    <input id="schedule-scheduled" class="time-input" type="time" name="refreshTime" step="900">
+                </div>
+
+                <div class="form-group nowrap" id="schedule-group-cron">
+                    <input type="radio" name="scheduleRefreshType" id="schedule-refresh-cron" value="cron">
+                    <label for="schedule-refresh-cron">Cron</label>
+                    <input id="schedule-cronExpression" class="form-input" type="text" name="cronExpression" 
+                           placeholder="*/15 * * * *" title="Cron expression (e.g., */15 * * * * for every 15 min)">
+                </div>
+            </form>
+            <div class="buttons-container">
+                <button type="button" class="action-button" onclick="updatePluginSchedule()">Save Schedule</button>
             </div>
         </div>
     </div>
