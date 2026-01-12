@@ -127,6 +127,7 @@ class WeatherTime(BasePlugin):
         else:
             current_time = now.strftime("%I:%M %p").lstrip("0")
         template_params["current_time"] = current_time
+        template_params["clock_icon"] = self.get_plugin_dir('icons/clock.png')
 
         image = self.render_image(dimensions, "weather_time.html", "weather_time.css", template_params)
 
