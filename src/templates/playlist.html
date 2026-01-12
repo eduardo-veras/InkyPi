@@ -323,7 +323,11 @@
         });
 
         // Schedule editing functions
-        function openEditScheduleModal(pluginId, instanceName, refreshConfig) {
+        function openEditScheduleModal(button) {
+            const pluginId = button.dataset.pluginId;
+            const instanceName = button.dataset.instanceName;
+            const refreshConfig = JSON.parse(button.dataset.refresh);
+            
             document.getElementById("schedule_plugin_id").value = pluginId;
             document.getElementById("schedule_instance_name").value = instanceName;
             
@@ -509,7 +513,11 @@
                                 <a href="{{ url_for('plugin.plugin_page', plugin_id=plugin_instance.plugin_id) }}?instance={{ plugin_instance.name }}" class="edit-button" title="Edit Settings">
                                     <img src="{{ url_for('static', filename='icons/edit.png') }}" alt="edit plugin" class="action-icon">
                                 </a>
-                                <button class="edit-button" title="Edit Schedule" onclick="openEditScheduleModal('{{ plugin_instance.plugin_id }}', '{{ plugin_instance.name }}', {{ plugin_instance.refresh | tojson }})">
+                                <button class="edit-button" title="Edit Schedule" 
+                                        data-plugin-id="{{ plugin_instance.plugin_id }}" 
+                                        data-instance-name="{{ plugin_instance.name }}" 
+                                        data-refresh='{{ plugin_instance.refresh | tojson }}'
+                                        onclick="openEditScheduleModal(this)">
                                     <img src="{{ url_for('static', filename='icons/playlist.png') }}" alt="edit schedule" class="action-icon">
                                 </button>
                                 <button class="edit-button" title="Display Now" onclick="displayPluginInstance('{{ playlist.name }}', '{{ plugin_instance.plugin_id }}','{{ plugin_instance.name }}')">
