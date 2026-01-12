@@ -33,11 +33,10 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  container-type: size;
 }
 
 .title {
-  font-size: min(50cqh, 8cqi);
+  font-size: min(10dvh, 8vw);
   text-align: center;
   align-content: center;
   width: 100%;
@@ -51,11 +50,10 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  container-type: size;
 }
 
 .current-date {
-  font-size: min(50cqh, 8cqi);
+  font-size: min(10dvh, 8vw);
   text-align: right;
   align-content: end;
   width: 100%;
@@ -69,14 +67,19 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  container-type: size;
+  gap: 0.5vw;
+}
+
+.clock-icon {
+  height: min(8dvh, 6vw);
+  width: auto;
+  object-fit: contain;
 }
 
 .current-time {
-  font-size: min(50cqh, 8cqi);
+  font-size: min(10dvh, 8vw);
   text-align: left;
   align-content: start;
-  width: 100%;
   font-weight: bold;
   line-height: 100%;
   white-space: nowrap;
