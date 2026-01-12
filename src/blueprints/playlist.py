@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import os
 import logging
 from utils.app_utils import resolve_path, handle_request_files, parse_form
+from croniter import croniter
 
 
 logger = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ def add_plugin():
         if not all(char.isalpha() or char.isspace() or char.isnumeric() for char in instance_name):
             return jsonify({"error": "Instance name can only contain alphanumeric characters and spaces"}), 400
         refresh_type = refresh_settings.get('refreshType')
-        if not refresh_type or refresh_type not in ["interval", "scheduled"]:
+        if not refresh_type or refresh_type not in ["interval", "scheduled", "cron"]:
             return jsonify({"error": "Refresh type is required"}), 400
 
         existing = playlist_manager.find_plugin(plugin_id, instance_name)
@@ -45,11 +46,21 @@ def add_plugin():
                 return jsonify({"error": "Refresh interval is required"}), 400
             refresh_interval_seconds = calculate_seconds(int(interval), unit)
             refresh_config = {"interval": refresh_interval_seconds}
-        else:
+        elif refresh_type == "scheduled":
             refresh_time = refresh_settings.get('refreshTime')
             if not refresh_settings.get('refreshTime'):
                 return jsonify({"error": "Refresh time is required"}), 400
             refresh_config = {"scheduled": refresh_time}
+        elif refresh_type == "cron":
+            cron_expression = refresh_settings.get('cronExpression')
+            if not cron_expression:
+                return jsonify({"error": "Cron expression is required"}), 400
+            # Validate the cron expression
+            try:
+                croniter(cron_expression)  # This will raise if invalid
+            except Exception as e:
+                return jsonify({"error": f"Invalid cron expression: {str(e)}"}), 400
+            refresh_config = {"cron": cron_expression}
 
         plugin_settings.update(handle_request_files(request.files))
         plugin_dict = {

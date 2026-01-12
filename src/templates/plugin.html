@@ -408,6 +408,13 @@
                   <input id="scheduled" class="time-input" type="time" name="refreshTime" step="900">
                 </div>
 
+                <div class="form-group nowrap" id="group-cron">
+                  <input type="radio" name="refreshType" id="refresh-cron" value="cron">
+                  <label for="refresh-cron">Cron</label>
+                  <input id="cronExpression" class="form-input" type="text" name="cronExpression" 
+                         placeholder="*/15 * * * *" title="Cron expression (e.g., */15 * * * * for every 15 min)">
+                </div>
+
                 <script>
                   document.addEventListener('DOMContentLoaded', () => {
                     // Interval group
@@ -419,6 +426,11 @@
                     const groupScheduled = document.getElementById('group-scheduled');
                     const radioScheduled = document.getElementById('refresh-scheduled');
                     const inputScheduled = document.getElementById('scheduled');
+
+                    // Cron group
+                    const groupCron = document.getElementById('group-cron');
+                    const radioCron = document.getElementById('refresh-cron');
+                    const inputCron = document.getElementById('cronExpression');
 
                     // Helper to activate a group
                     const activateGroup = (radio, input) => {
@@ -438,13 +450,20 @@
                       activateGroup(radioScheduled, inputScheduled);
                     });
 
+                    groupCron.addEventListener('click', (e) => {
+                      if (e.target.tagName === 'INPUT') return;
+                      activateGroup(radioCron, inputCron);
+                    });
+
                     // Clicking the radio itself → focus the input
                     radioInterval.addEventListener('click', () => activateGroup(radioInterval, inputInterval));
                     radioScheduled.addEventListener('click', () => activateGroup(radioScheduled, inputScheduled));
+                    radioCron.addEventListener('click', () => activateGroup(radioCron, inputCron));
 
                     // Focusing inputs → auto-select their radio
                     inputInterval.addEventListener('focus', () => (radioInterval.checked = true));
                     inputScheduled.addEventListener('focus', () => (radioScheduled.checked = true));
+                    inputCron.addEventListener('focus', () => (radioCron.checked = true));
                   });
                 </script>
 

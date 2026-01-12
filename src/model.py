@@ -2,6 +2,7 @@ import os
 import json
 import logging
 from datetime import datetime, timedelta
+from croniter import croniter
 
 logger = logging.getLogger(__name__)
 
@@ -325,6 +326,19 @@ class PluginInstance:
             if (latest_refresh_date < current_date and current_time.time() >= scheduled_time) or \
             (latest_refresh_date == current_date and latest_refresh_dt.time() < scheduled_time <= current_time.time()):
                 return True
+
+        # Check for cron-based refresh
+        if "cron" in self.refresh:
+            cron_expression = self.refresh.get("cron")
+            if cron_expression:
+                try:
+                    # Get the next scheduled time based on the last refresh
+                    cron = croniter(cron_expression, latest_refresh_dt)
+                    next_run = cron.get_next(datetime)
+                    if current_time >= next_run:
+                        return True
+                except Exception as e:
+                    logger.error(f"Invalid cron expression '{cron_expression}': {e}")
 
         return False
 
